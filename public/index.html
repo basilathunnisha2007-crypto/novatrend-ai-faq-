@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant · Your Shopping Support</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><text y='52' font-size='52'>🤖</text></svg>">
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .page {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px 18px;
+    }
+
+    .home { width: min(760px, 100%); text-align: center; color: #fff; }
+
+    .home h1 {
+      margin: 18px 0 2px;
+      font-size: 40px;
+      letter-spacing: -.5px;
+    }
+
+    .home .sub { margin: 0 0 26px; font-size: 17px; opacity: .88; }
+
+    .home h2 { margin: 0 0 8px; font-size: 26px; color: var(--ink); }
+    .home .welcome { margin: 0 0 20px; color: var(--muted); }
+
+    .chatbot {
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .chat-log { min-height: 260px; max-height: 44vh; }
+
+    .signin-link {
+      display: inline-block;
+      margin-top: 18px;
+      color: #fff;
+      opacity: .85;
+      font-size: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .home h1 { font-size: 30px; }
+      .bot-emoji { width: 68px; height: 68px; font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="home">
+      <div class="bot-emoji" aria-hidden="true">🤖</div>
+      <h1>AI Assistant</h1>
+      <p class="sub">Your Shopping Support</p>
+
+      <div class="card chatbot">
+        <div>
+          <h2>Welcome to AI Assistant</h2>
+          <p class="welcome">Your intelligent customer support assistant for all shopping-related questions</p>
+        </div>
+
+        <div class="chat-log" id="chatLog">
+          <div class="msg bot">🤖 How can I help you today?</div>
+        </div>
+
+        <form class="row" id="chatForm">
+          <input type="text" id="question" autocomplete="off"
+                 placeholder="Ask about shipping, returns, payments, products or your order...">
+          <button type="submit" id="send">Send</button>
+        </form>
+      </div>
+
+      <a class="signin-link" href="/login.html">Sign in</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { api, escapeHtml, getUser } from '/js/api.js';
+
+    const log = document.getElementById('chatLog');
+    const form = document.getElementById('chatForm');
+    const input = document.getElementById('question');
+    const send = document.getElementById('send');
+
+    const user = getUser();
+    if (user) {
+      // Signed-in visitors belong on their dashboard, not the public homepage.
+      location.replace('/dashboard.html');
+    }
+
+    function append(text, who) {
+      const bubble = document.createElement('div');
+      bubble.className = `msg ${who}`;
+      bubble.innerHTML = who === 'bot' ? `🤖 ${escapeHtml(text)}` : escapeHtml(text);
+      log.append(bubble);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const question = input.value.trim();
+      if (!question) return;
+
+      append(question, 'user');
+      input.value = '';
+      send.disabled = true;
+
+      try {
+        const data = await api('/chat', { method: 'POST', body: { question } });
+        append(data.answer ?? data.error ?? 'Something went wrong.', 'bot');
+      } catch (error) {
+        append(error.message, 'bot');
+      } finally {
+        send.disabled = false;
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>

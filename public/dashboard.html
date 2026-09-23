@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard · AI Assistant</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .shell { max-width: 1180px; margin: 0 auto; padding: 24px 18px 48px; }
+
+    header.bar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #fff;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    header.bar .bot-emoji { width: 52px; height: 52px; font-size: 26px; animation: none; }
+    header.bar h1 { margin: 0; font-size: 22px; }
+    header.bar .who { margin: 0; font-size: 13px; opacity: .88; }
+    header.bar .spacer { flex: 1; }
+
+    .badge {
+      padding: 4px 11px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .22);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .stat { background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); }
+    .stat b { display: block; font-size: 26px; color: var(--purple); }
+    .stat span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+    .grid { display: grid; grid-template-columns: 290px 1fr; gap: 16px; align-items: start; }
+
+    h3 { margin: 0 0 12px; font-size: 15px; text-transform: uppercase; letter-spacing: .07em; color: var(--purple); }
+
+    #historyList { list-style: none; margin: 12px 0; padding: 0; max-height: 420px; overflow-y: auto; }
+    #historyList li {
+      padding: 9px 11px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    #historyList li:hover { background: #f5f3ff; border-color: var(--line); }
+    #historyList li.empty { color: var(--muted); cursor: default; }
+    #historyList .when { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .chat-card { display: flex; flex-direction: column; gap: 12px; min-height: 480px; }
+    .chat-log { max-height: 46vh; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+    .panel + .panel { margin-top: 16px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="bar">
+      <div class="bot-emoji" aria-hidden="true">🤖</div>
+      <div>
+        <h1>AI Assistant</h1>
+        <p class="who"><span id="userName"></span> <span class="badge" id="userRole"></span></p>
+      </div>
+      <div class="spacer"></div>
+      <button class="ghost" id="signOut">Sign out</button>
+    </header>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="grid">
+      <aside class="card">
+        <h3>History</h3>
+        <input type="search" id="historySearch" placeholder="Search previous chats...">
+        <p class="muted" id="searchMode">Recent conversations</p>
+        <ul id="historyList"><li class="empty">No conversations yet.</li></ul>
+        <button class="ghost small" id="clearHistory">Clear history</button>
+      </aside>
+
+      <main>
+        <section class="card chat-card" id="chatPanel">
+          <h3>Ask the assistant</h3>
+          <div class="chat-log" id="chatLog">
+            <div class="msg bot">🤖 How can I help you today?</div>
+          </div>
+          <form class="row" id="chatForm">
+            <input type="text" id="question" autocomplete="off"
+                   placeholder="Ask about shipping, returns, payments, products or your order...">
+            <button type="submit" id="send">Send</button>
+          </form>
+        </section>
+
+        <section class="card panel hidden" id="faqPanel">
+          <h3>FAQ management</h3>
+          <form class="form-grid" id="faqForm">
+            <input type="text" id="faqQuestion" placeholder="Question" required>
+            <input type="text" id="faqAnswer" placeholder="Answer" required>
+            <input type="text" id="faqCategory" placeholder="Category">
+            <button type="submit" id="faqSubmit">Add FAQ</button>
+          </form>
+          <p class="error hidden" id="faqError"></p>
+          <table>
+            <thead><tr><th>Question</th><th>Answer</th><th>Category</th><th></th></tr></thead>
+            <tbody id="faqRows"></tbody>
+          </table>
+        </section>
+
+        <section class="card panel hidden" id="usersPanel">
+          <h3>User management</h3>
+          <form class="form-grid" id="userForm">
+            <input type="text" id="newName" placeholder="Name" required>
+            <input type="email" id="newEmail" placeholder="Email" required>
+            <input type="password" id="newPassword" placeholder="Password" required>
+            <select id="newRole">
+              <option value="customer">customer</option>
+              <option value="manager">manager</option>
+              <option value="admin">admin</option>
+            </select>
+            <button type="submit">Add user</button>
+          </form>
+          <p class="error hidden" id="userError"></p>
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr></thead>
+            <tbody id="userRows"></tbody>
+          </table>
+        </section>
+
+        <section class="card panel hidden" id="recentPanel">
+          <h3>Latest customer questions</h3>
+          <table>
+            <thead><tr><th>Who</th><th>Question</th><th>When</th></tr></thead>
+            <tbody id="recentRows"></tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script type="module">
+    import { api, clearSession, escapeHtml, getUser } from '/js/api.js';
+
+    const user = getUser();
+    if (!user) location.replace('/login.html');
+
+    const isStaff = user && (user.role === 'manager' || user.role === 'admin');
+    document.getElementById('userName').textContent = `${user?.name ?? ''} · ${user?.email ?? ''}`;
+    document.getElementById('userRole').textContent = user?.role ?? '';
+
+    document.getElementById('signOut').addEventListener('click', () => {
+      clearSession();
+      location.href = '/';
+    });
+
+    // --- stats --------------------------------------------------------------
+    const LABELS = {
+      conversations: 'your chats',
+      faqs: 'FAQ entries',
+      orders: 'orders',
+      inTransit: 'in transit',
+      totalConversations: 'all chats',
+      users: 'users'
+    };
+
+    async function loadStats() {
+      const { dashboard } = await api('/dashboard/stats');
+      document.getElementById('stats').innerHTML = Object.entries(LABELS)
+        .filter(([key]) => dashboard[key] !== undefined)
+        .map(([key, label]) => `<div class="stat"><b>${dashboard[key]}</b><span>${label}</span></div>`)
+        .join('');
+    }
+
+    // --- chat ---------------------------------------------------------------
+    const log = document.getElementById('chatLog');
+
+    function append(text, who) {
+      const bubble = document.createElement('div');
+      bubble.className = `msg ${who}`;
+      bubble.innerHTML = who === 'bot' ? `🤖 ${escapeHtml(text)}` : escapeHtml(text);
+      log.append(bubble);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    document.getElementById('chatForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const input = document.getElementById('question');
+      const question = input.value.trim();
+      if (!question) return;
+
+      append(question, 'user');
+      input.value = '';
+      const send = document.getElementById('send');
+      send.disabled = true;
+
+      try {
+        const data = await api('/chat', { method: 'POST', body: { question } });
+        append(data.answer ?? data.error ?? 'Something went wrong.', 'bot');
+      } catch (error) {
+        append(error.message, 'bot');
+      } finally {
+        send.disabled = false;
+        await Promise.all([loadHistory(document.getElementById('historySearch').value.trim()), loadStats()]);
+      }
+    });
+
+    // --- history ------------------------------------------------------------
+    const historyList = document.getElementById('historyList');
+
+    function renderHistory({ turns, search, query }) {
+      document.getElementById('searchMode').textContent =
+        search === 'embeddings' ? 'Semantic search (Gemini embeddings)'
+          : search === 'keyword' ? 'Semantic search (keyword fallback)'
+            : 'Recent conversations';
+
+      historyList.innerHTML = turns.length
+        ? turns.map((turn) =>
+            `<li data-question="${escapeHtml(turn.question)}">${escapeHtml(turn.question)}` +
+            `<span class="when">${new Date(turn.createdAt).toLocaleString()}</span></li>`).join('')
+        : `<li class="empty">${query ? 'No matching conversations.' : 'No conversations yet.'}</li>`;
+    }
+
+    async function loadHistory(query = '') {
+      renderHistory(await api(`/history?q=${encodeURIComponent(query)}`));
+    }
+
+    historyList.addEventListener('click', (event) => {
+      const item = event.target.closest('li[data-question]');
+      if (!item) return;
+      const input = document.getElementById('question');
+      input.value = item.dataset.question;
+      input.focus();
+    });
+
+    let searchTimer;
+    document.getElementById('historySearch').addEventListener('input', (event) => {
+      clearTimeout(searchTimer);
+      const query = event.target.value.trim();
+      searchTimer = setTimeout(() => loadHistory(query), 250);
+    });
+
+    document.getElementById('clearHistory').addEventListener('click', async () => {
+      await api('/history', { method: 'DELETE' });
+      document.getElementById('historySearch').value = '';
+      await Promise.all([loadHistory(), loadStats()]);
+    });
+
+    // --- FAQ management (manager + admin) ------------------------------------
+    let editingFaqId = null;
+    const faqError = document.getElementById('faqError');
+
+    function showError(box, message) {
+      box.textContent = message;
+      box.classList.remove('hidden');
+    }
+
+    async function loadFaqs() {
+      const { faqs } = await api('/faqs');
+      document.getElementById('faqRows').innerHTML = faqs.map((faq) => `
+        <tr>
+          <td>${escapeHtml(faq.question)}</td>
+          <td>${escapeHtml(faq.answer)}</td>
+          <td>${escapeHtml(faq.category)}</td>
+          <td class="row">
+            <button class="ghost small" data-edit="${faq.id}">Edit</button>
+            <button class="danger small" data-delete="${faq.id}">Delete</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    document.getElementById('faqForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      faqError.classList.add('hidden');
+      const body = {
+        question: document.getElementById('faqQuestion').value.trim(),
+        answer: document.getElementById('faqAnswer').value.trim(),
+        category: document.getElementById('faqCategory').value.trim() || 'General'
+      };
+
+      try {
+        if (editingFaqId) {
+          await api(`/faqs/${editingFaqId}`, { method: 'PUT', body });
+          editingFaqId = null;
+          document.getElementById('faqSubmit').textContent = 'Add FAQ';
+        } else {
+          await api('/faqs', { method: 'POST', body });
+        }
+        event.target.reset();
+        await Promise.all([loadFaqs(), loadStats()]);
+      } catch (error) {
+        showError(faqError, error.message);
+      }
+    });
+
+    document.getElementById('faqRows').addEventListener('click', async (event) => {
+      const editId = event.target.dataset.edit;
+      const deleteId = event.target.dataset.delete;
+
+      if (editId) {
+        const { faq } = await api(`/faqs/${editId}`);
+        document.getElementById('faqQuestion').value = faq.question;
+        document.getElementById('faqAnswer').value = faq.answer;
+        document.getElementById('faqCategory').value = faq.category;
+        document.getElementById('faqSubmit').textContent = 'Save changes';
+        editingFaqId = editId;
+        return;
+      }
+
+      if (deleteId) {
+        try {
+          await api(`/faqs/${deleteId}`, { method: 'DELETE' });
+          await Promise.all([loadFaqs(), loadStats()]);
+        } catch (error) {
+          showError(faqError, error.message);
+        }
+      }
+    });
+
+    // --- user management (admin) ---------------------------------------------
+    const userError = document.getElementById('userError');
+
+    async function loadUsers() {
+      const { users } = await api('/users');
+      document.getElementById('userRows').innerHTML = users.map((item) => `
+        <tr>
+          <td>${escapeHtml(item.name)}</td>
+          <td>${escapeHtml(item.email)}</td>
+          <td>${escapeHtml(item.role)}</td>
+          <td><button class="danger small" data-delete="${item.id}">Delete</button></td>
+        </tr>`).join('');
+    }
+
+    document.getElementById('userForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      userError.classList.add('hidden');
+      try {
+        await api('/users', {
+          method: 'POST',
+          body: {
+            name: document.getElementById('newName').value.trim(),
+            email: document.getElementById('newEmail').value.trim(),
+            password: document.getElementById('newPassword').value,
+            role: document.getElementById('newRole').value
+          }
+        });
+        event.target.reset();
+        await Promise.all([loadUsers(), loadStats()]);
+      } catch (error) {
+        showError(userError, error.message);
+      }
+    });
+
+    document.getElementById('userRows').addEventListener('click', async (event) => {
+      const id = event.target.dataset.delete;
+      if (!id) return;
+      try {
+        await api(`/users/${id}`, { method: 'DELETE' });
+        await Promise.all([loadUsers(), loadStats()]);
+      } catch (error) {
+        showError(userError, error.message);
+      }
+    });
+
+    // --- recent questions (staff) --------------------------------------------
+    async function loadRecent() {
+      const { turns } = await api('/dashboard/recent');
+      document.getElementById('recentRows').innerHTML = turns.map((turn) => `
+        <tr>
+          <td>${escapeHtml(turn.user.name)}</td>
+          <td>${escapeHtml(turn.question)}</td>
+          <td>${new Date(turn.createdAt).toLocaleString()}</td>
+        </tr>`).join('');
+    }
+
+    // --- boot ------------------------------------------------------------------
+    const tasks = [loadStats(), loadHistory()];
+
+    if (isStaff) {
+      document.getElementById('faqPanel').classList.remove('hidden');
+      document.getElementById('recentPanel').classList.remove('hidden');
+      tasks.push(loadFaqs(), loadRecent());
+    }
+    if (user?.role === 'admin') {
+      document.getElementById('usersPanel').classList.remove('hidden');
+      tasks.push(loadUsers());
+    }
+
+    await Promise.all(tasks);
+  </script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in · AI Assistant</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .page { min-height: 100vh; display: grid; place-items: center; padding: 32px 18px; }
+    .login { width: min(430px, 100%); text-align: center; color: #fff; }
+    .login h1 { margin: 14px 0 4px; font-size: 30px; }
+    .login .sub { margin: 0 0 24px; opacity: .88; }
+
+    .tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+    .tab {
+      padding: 10px 6px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .tab.active { color: #fff; background: linear-gradient(135deg, var(--blue), var(--purple)); border-color: transparent; }
+
+    form { display: grid; gap: 12px; text-align: left; }
+    .demo { margin-top: 16px; font-size: 13px; color: var(--muted); text-align: left; line-height: 1.7; }
+    .home-link { display: inline-block; margin-top: 16px; color: #fff; opacity: .85; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="login">
+      <div class="bot-emoji" aria-hidden="true">🤖</div>
+      <h1>AI Assistant</h1>
+      <p class="sub">Sign in to your account</p>
+
+      <div class="card">
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-role="customer" type="button">Customer</button>
+          <button class="tab" data-role="manager" type="button">Manager</button>
+          <button class="tab" data-role="admin" type="button">Admin</button>
+        </div>
+
+        <form id="loginForm">
+          <input type="email" id="email" placeholder="Email" autocomplete="username" required>
+          <input type="password" id="password" placeholder="Password" autocomplete="current-password" required>
+          <button type="submit" id="submit">Sign in as customer</button>
+        </form>
+
+        <p class="error hidden" id="error"></p>
+
+        <div class="demo" id="demo"></div>
+      </div>
+
+      <a class="home-link" href="/">Back to the assistant</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { api, setSession } from '/js/api.js';
+
+    const DEMO = {
+      customer: [['demo@novatrend.com', 'demo1234'], ['priya@example.com', 'priya1234']],
+      manager: [['manager@novatrend.com', 'manager1234']],
+      admin: [['admin@novatrend.com', 'admin1234']]
+    };
+
+    let role = 'customer';
+    const submit = document.getElementById('submit');
+    const errorBox = document.getElementById('error');
+    const demoBox = document.getElementById('demo');
+
+    function renderRole() {
+      submit.textContent = `Sign in as ${role}`;
+      demoBox.innerHTML =
+        `Demo ${role} accounts:<br>` +
+        DEMO[role].map(([email, password]) => `<b>${email}</b> / ${password}`).join('<br>');
+      for (const tab of document.querySelectorAll('.tab')) {
+        tab.classList.toggle('active', tab.dataset.role === role);
+      }
+    }
+
+    document.getElementById('tabs').addEventListener('click', (event) => {
+      const tab = event.target.closest('.tab');
+      if (!tab) return;
+      role = tab.dataset.role;
+      errorBox.classList.add('hidden');
+      renderRole();
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorBox.classList.add('hidden');
+      submit.disabled = true;
+
+      try {
+        const data = await api('/auth/login', {
+          method: 'POST',
+          body: {
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value,
+            role
+          }
+        });
+
+        if (!data.token) throw new Error(data.error ?? 'Invalid email or password.');
+        setSession(data.token, data.user);
+        location.href = '/dashboard.html';
+      } catch (error) {
+        errorBox.textContent = error.message;
+        errorBox.classList.remove('hidden');
+      } finally {
+        submit.disabled = false;
+      }
+    });
+
+    renderRole();
+  </script>
+</body>
+</html>
