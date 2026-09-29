@@ -1,0 +1,44 @@
+# npm run test:api – run on 2026-09-29 against a local server (MongoDB 7, no Gemini key)
+ok   GET  /api/health                               200
+ok   POST /api/auth/login bad password              401
+ok   POST /api/auth/login role mismatch             403
+ok   GET  /api/auth/me                              200
+ok   GET  /api/auth/me no token                     401
+ok   GET  /api/faqs                                 200
+ok   GET  /api/faqs?q=refund                        200
+ok   GET  /api/faqs/categories                      200
+ok   POST /api/faqs as customer                     403
+ok   POST /api/faqs as manager                      201
+ok   GET  /api/faqs/:id                             200
+ok   PUT  /api/faqs/:id                             200
+ok   DELETE /api/faqs/:id                           200
+ok   GET  /api/faqs/:id deleted                     404
+ok   POST /api/chat public                          200
+ok   POST /api/chat no question                     400
+ok   POST /api/chat tracking, public                401
+ok   POST /api/chat tracking, customer              200
+ok   GET  /api/history                              200
+ok   GET  /api/history?q=                           200
+ok   GET  /api/history guest                        200
+ok   DELETE /api/history/:id unknown                404
+ok   DELETE /api/history guest                      200
+ok   GET  /api/dashboard/stats public               200
+ok   GET  /api/dashboard/stats admin                200
+ok   GET  /api/dashboard/recent customer            403
+ok   GET  /api/dashboard/recent manager             200
+ok   GET  /api/users as manager                     403
+ok   GET  /api/users as admin                       200
+ok   POST /api/users                                201
+ok   POST /api/users duplicate email                409
+ok   GET  /api/users/:id                            200
+ok   PUT  /api/users/:id                            200
+ok   DELETE /api/users/:id                          200
+ok   GET  /api/orders customer                      200
+ok   GET  /api/orders/:id other customer            404
+ok   GET  /api/orders/:id manager                   200
+ok   GET  /api/nope                                 404
+ok   GET  / homepage                                200
+ok   GET  /login.html                               200
+ok   GET  /dashboard.html                           200
+
+41 passed, 0 failed
